@@ -3,7 +3,9 @@ name = "openfittrack"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "ollama>=0.6.3",
     "pandas>=3.1.1",
+    "python-dotenv>=1.2.4",
     "rapidfuzz>=3.14.6",
     "sqlmodel>=0.0.49",
 ]
