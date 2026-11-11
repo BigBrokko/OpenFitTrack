@@ -1,0 +1,21 @@
+"""Entry point and navigation. Run with: uv run streamlit run app/main.py"""
+
+import sys
+from pathlib import Path
+
+# Allow `streamlit run app/main.py` from the repo root to find the `core` package.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import streamlit as st  # noqa: E402
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv()
+st.set_page_config(page_title="OpenFitTrack", page_icon="🥗")
+
+navigation = st.navigation(
+    [
+        st.Page("pages/log_text.py", title="Eten loggen", icon="💬", default=True),
+        st.Page("pages/log_manual.py", title="Handmatig toevoegen", icon="🔎"),
+    ]
+)
+navigation.run()
