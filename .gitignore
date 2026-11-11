@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets and local data
+.env
+*.db
+*.sqlite3
+
+# Claude Code (personal/temporary parts only; shared config may be committed)
+.claude/
+CLAUDE.md
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
