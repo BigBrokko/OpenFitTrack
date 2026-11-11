@@ -2,21 +2,10 @@ from datetime import date, datetime
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, create_engine, select
+from sqlmodel import select
 
-from core.db import create_db, get_current_goal
+from core.db import get_current_goal
 from core.models import Food, FoodEntry, Goal, WeightEntry
-
-
-@pytest.fixture
-def session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    create_db(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def make_food(name: str = "Kwark") -> Food:
