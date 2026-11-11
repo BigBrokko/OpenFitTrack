@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from streamlit.testing.v1 import AppTest
 
 from core.db import create_db, get_engine
-from core.models import Food, FoodEntry
+from core.models import Food, FoodEntry, Goal
 from core.parsing import ParsedItem, ParsedMeal
 
 APP_PATH = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
@@ -179,3 +179,112 @@ def test_invalid_new_food_shows_error_and_creates_nothing(engine):
     assert "100 g" in at.error[0].value
     with Session(engine) as session:
         assert session.exec(select(Food).where(Food.name == "Onmogelijk")).first() is None
+
+
+# --- Goals page --------------------------------------------------------------
+
+
+def open_goals_page():
+    return AppTest.from_file(APP_PATH, default_timeout=30).run().switch_page("pages/goals.py").run()
+
+
+def goals(engine):
+    with Session(engine) as session:
+        return session.exec(select(Goal).order_by(Goal.valid_from)).all()
+
+
+def test_goals_page_without_goal_shows_hint(engine):
+    at = open_goals_page()
+
+    assert not at.exception
+    assert "nog geen doel" in at.info[0].value
+
+
+def test_save_a_goal(engine):
+    at = open_goals_page()
+
+    at.number_input[0].set_value(2200.0)
+    at.number_input[1].set_value(160.0)
+    at.number_input[2].set_value(240.0)
+    at.number_input[3].set_value(65.0)
+    button(at, "Opslaan").click().run()
+
+    (goal,) = goals(engine)
+    assert (goal.kcal, goal.protein_g, goal.carbs_g, goal.fat_g) == (2200, 160, 240, 65)
+    assert goal.target_weight_kg is None
+    assert "opgeslagen" in at.success[0].value
+    assert "2200 kcal" in at.info[0].value
+
+
+def test_save_goal_with_target_weight(engine):
+    at = open_goals_page()
+
+    at.checkbox[0].check()
+    at.number_input[4].set_value(75.0)
+    button(at, "Opslaan").click().run()
+
+    assert goals(engine)[0].target_weight_kg == 75
+
+
+def test_invalid_goal_shows_error(engine):
+    at = open_goals_page()
+
+    at.number_input[0].set_value(0.0)
+    button(at, "Opslaan").click().run()
+
+    assert "kcal" in at.error[0].value
+    assert goals(engine) == []
+
+
+# --- Day page ----------------------------------------------------------------
+
+
+def open_day_page():
+    return AppTest.from_file(APP_PATH, default_timeout=30).run().switch_page("pages/day.py").run()
+
+
+def log_today(engine, grams):
+    from datetime import datetime
+
+    with Session(engine) as session:
+        food = session.exec(select(Food).where(Food.name == "Kwark magere")).one()
+        session.add(FoodEntry(food_id=food.id, logged_at=datetime.now(), amount_g=grams))
+        session.commit()
+
+
+def add_goal(engine, kcal):
+    from datetime import date
+
+    with Session(engine) as session:
+        session.add(
+            Goal(valid_from=date(2020, 1, 1), kcal=kcal, protein_g=100, carbs_g=200, fat_g=50)
+        )
+        session.commit()
+
+
+def test_day_page_without_entries_or_goal(engine):
+    at = open_day_page()
+
+    assert not at.exception
+    infos = " ".join(i.value for i in at.info)
+    assert "geen doel" in infos
+    assert "niets gelogd" in infos
+
+
+def test_day_page_shows_entries_against_goal(engine):
+    add_goal(engine, 2000)
+    log_today(engine, 200)  # 200 g of 51 kcal / 100 g = 102 kcal
+    at = open_day_page()
+
+    assert not at.exception
+    assert at.metric[0].value == "102 kcal"
+    assert any("van 2000 · nog 1898 kcal" in c.value for c in at.caption)
+    assert "Kwark magere" in str(at.dataframe[0].value)
+
+
+def test_day_page_shows_overage(engine):
+    add_goal(engine, 50)
+    log_today(engine, 200)
+    at = open_day_page()
+
+    assert any("+52 kcal over" in c.value for c in at.caption)

@@ -16,6 +16,8 @@ navigation = st.navigation(
     [
         st.Page("pages/log_text.py", title="Eten loggen", icon="💬", default=True),
         st.Page("pages/log_manual.py", title="Handmatig toevoegen", icon="🔎"),
+        st.Page("pages/day.py", title="Dagoverzicht", icon="📅"),
+        st.Page("pages/goals.py", title="Doelen", icon="🎯"),
     ]
 )
 navigation.run()
