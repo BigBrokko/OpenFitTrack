@@ -1,23 +1,24 @@
 # OpenFitTrack
 
-AI-assisted food and weight tracker. Log meals in plain language
-("200g quark with a banana"); an LLM parses the text into structured items,
-and nutrition values come from a food database that you import yourself from a CSV file
-(any country, any language), or add by hand.
+Self-hosted food and weight tracker. You log what you eat by searching a food database
+that you import yourself from a CSV file (any country, any language) or fill by hand.
+A read-only MCP server lets you connect your own Claude and ask it for tips based on your
+own numbers.
 
-**Core principle:** the LLM never invents nutrition values. It only parses text
-and optionally picks from database candidates. All kcal/macro math is plain Python.
+**Core principle:** an AI model never invents nutrition values. All kcal/macro math is plain
+Python, and a connected model can only read the data.
 
 ## Status
 
-Working MVP: meal logging with a confirmation step, manual search, CSV food import,
-daily overview against goals, weight with an EMA trend line, goals and an eval suite.
+Working: food logging by search, CSV food import, your own foods, daily overview against
+goals, weight with an EMA trend line, goals, and a read-only MCP server (stdio). Not yet:
+MCP over HTTPS for ChatGPT and claude.ai (that needs authentication).
 
 ## Setup
 
 ```bash
 uv sync
-cp .env.example .env   # then fill in your own values
+cp .env.example .env
 uv run pytest
 uv run ruff check
 uv run streamlit run app/main.py
@@ -30,24 +31,78 @@ The app starts with an empty food database. Add foods in the app:
 - **Importeren:** upload a CSV file, check the suggested column mapping and import it.
   Values must be per 100 g; semicolon or comma separated, decimal comma or point are
   detected. Importing the same file again updates instead of duplicating.
-- **Handmatig toevoegen:** create and edit your own foods.
+- **Eten loggen:** search a food and log an amount in grams. You can also create your
+  own foods there, and edit them later.
 
-Write your meals in the same language as your food database: the parser keeps food names
-in the language you type them in, and the search compares them with the names in the
-database. The UI itself is Dutch for now.
+The UI itself is Dutch for now.
 
 Optional, for Dutch users: the [NEVO table](https://www.rivm.nl/nevo) can be imported with
 `uv run python scripts/import_nevo.py <path to NEVO csv>` (it has its own license, so it is
 not included here).
 
+## Connect your AI (MCP)
+
+The MCP server gives an AI assistant read access to your data, so it can answer things like
+"how was my week?" and give tips. It has five tools, all read-only:
+
+| Tool | What it returns |
+|---|---|
+| `get_day_summary` | one day: logged food, totals, and the totals against that day's goal |
+| `get_period_summary` | daily totals and averages over a period (max 366 days) against the goal |
+| `get_weight_trend` | weights with an EMA trend line and the 7-day change |
+| `get_goals` | your current goal and the goal history |
+| `search_foods` | foods in your database with values per 100 g |
+
+It opens the database **read-only** (SQLite itself rejects writes), has no write tools, and
+runs on your machine over stdio: no network port. Days without logged food are not counted
+as zero intake; the tools report `days_logged` so the model can tell when logging looks
+incomplete. Whatever the model sees in a tool result goes to its provider (Anthropic,
+OpenAI), so connect only an assistant you are comfortable sharing this data with.
+
+Check that it works before you connect anything (uses `DATABASE_URL` or `.env`):
+
+```bash
+uv run python scripts/mcp_smoke.py
+```
+
+**Claude Code:**
+
+```bash
+claude mcp add --transport stdio openfittrack -- uv --directory /path/to/OpenFitTrack run python -m mcp_server
+```
+
+**Claude Desktop:** open Settings, Developer, Edit Config and add the server to
+`claude_desktop_config.json`, then restart Claude Desktop completely. Use absolute paths
+(and the full path to `uv` if Claude cannot find it):
+
+```json
+{
+  "mcpServers": {
+    "openfittrack": {
+      "command": "uv",
+      "args": ["--directory", "C:\\path\\to\\OpenFitTrack", "run", "python", "-m", "mcp_server"],
+      "env": { "DATABASE_URL": "sqlite:///C:/path/to/OpenFitTrack/openfittrack.db" }
+    }
+  }
+}
+```
+
+**With the Docker setup** the database lives in a volume. `docker run -i` mounts it
+read-only and works without extra environment variables (with the default project name the
+image is `openfittrack-app` and the volume `openfittrack_oft-data`):
+
+```bash
+docker run -i --rm -v openfittrack_oft-data:/data:ro openfittrack-app python -m mcp_server
+```
+
+Use that as the command in the Claude configuration (`"command": "docker"`, the rest as
+`args`). Docker Desktop must be running.
+
 ## Run with Docker
 
 The app runs in a container; the database lives in a Docker volume, so it survives restarts.
-Meal parsing uses [Ollama](https://ollama.com): by default the one running on your own machine.
 
 ```bash
-cp .env.example .env          # optional: set OLLAMA_MODEL
-ollama pull gemma3:12b        # the default model
 docker compose up -d --build  # app on http://localhost:8501
 ```
 
@@ -64,18 +119,10 @@ Git Bash on Windows rewrites paths that start with `/`; prefix the command with
 
 Stop with `docker compose down` (your data stays); `docker compose down -v` also deletes it.
 
-**Ollama in a container instead** (needs an NVIDIA GPU and its Docker support). Set
-`OLLAMA_HOST_DOCKER=http://ollama:11434` in `.env`, then:
-
-```bash
-docker compose --profile ollama up -d --build
-docker compose exec ollama ollama pull gemma3:12b
-```
-
 ## Structure
 
-- `core/` – all logic (parsing, matching, calculations, database); no Streamlit imports
+- `core/` – all logic (matching, calculations, statistics, CSV import, database); no Streamlit imports
 - `app/` – Streamlit UI, only calls `core`
-- `evals/` – test meals with expected output and an eval script
-- `scripts/` – helper scripts (NEVO import, demo data, parse smoke test)
+- `mcp_server/` – read-only MCP server, only calls `core`
+- `scripts/` – helper scripts (NEVO import, demo data, MCP smoke test)
 - `tests/` – unit tests

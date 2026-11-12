@@ -31,7 +31,6 @@ def test_food_entry_references_food(session):
         food_id=food.id,
         logged_at=datetime(2026, 1, 5, 8, 30),
         amount_g=200.0,
-        raw_text="200g kwark",
     )
     session.add(entry)
     session.commit()
@@ -39,7 +38,6 @@ def test_food_entry_references_food(session):
     saved = session.exec(select(FoodEntry)).one()
     assert saved.food_id == food.id
     assert saved.amount_g == 200.0
-    assert saved.raw_text == "200g kwark"
 
 
 def test_weight_date_is_unique(session):

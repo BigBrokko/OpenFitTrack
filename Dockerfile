@@ -16,6 +16,7 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY core ./core
 COPY app ./app
+COPY mcp_server ./mcp_server
 COPY scripts ./scripts
 
 # Run as a normal user. /data holds the SQLite database (mount a volume here).

@@ -1,12 +1,13 @@
-"""Search for a food by hand (no AI), log it, or create a missing food yourself."""
+"""Log food: search the database, enter an amount, or create a missing food yourself."""
 
 import streamlit as st
 from common import format_nutrients, get_app_engine, pick_datetime
-from sqlmodel import Session
+from sqlmodel import Session, func, select
 
 from core.foods import add_manual_food, list_manual_foods, update_manual_food
 from core.matching import search_foods
 from core.meal_log import save_entries
+from core.models import Food
 from core.nutrition import entry_nutrients
 
 engine = get_app_engine()
@@ -33,10 +34,18 @@ def create_food() -> None:
     state.food_message = ("success", f"'{name}' is aangemaakt. Je vindt het bij de resultaten.")
 
 
-st.title("Handmatig toevoegen")
+st.title("Eten loggen")
 
 if message := st.session_state.pop("flash", None):
     st.success(message)
+
+with Session(engine) as session:
+    food_count = session.exec(select(func.count()).select_from(Food)).one()
+if food_count == 0:
+    st.info(
+        "De voedingsdatabase is leeg. Importeer voedingsmiddelen uit een CSV-bestand bij "
+        "'Importeren', of maak hieronder je eerste voedingsmiddel aan."
+    )
 
 query = st.text_input("Zoek een voedingsmiddel", key="manual_query")
 results = []
@@ -59,7 +68,7 @@ if results:
 
     if st.button("Toevoegen", type="primary", disabled=grams <= 0):
         with Session(engine) as session:
-            save_entries(session, [(food, grams)], logged_at=logged_at, raw_text=None)
+            save_entries(session, [(food, grams)], logged_at=logged_at)
         st.session_state.flash = f"{food.name} ({grams:g} g) opgeslagen."
         st.rerun()
 

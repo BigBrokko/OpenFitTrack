@@ -14,8 +14,7 @@ st.set_page_config(page_title="OpenFitTrack", page_icon="🥗")
 
 navigation = st.navigation(
     [
-        st.Page("pages/log_text.py", title="Eten loggen", icon="💬", default=True),
-        st.Page("pages/log_manual.py", title="Handmatig toevoegen", icon="🔎"),
+        st.Page("pages/log_manual.py", title="Eten loggen", icon="🍽️", default=True),
         st.Page("pages/import_foods.py", title="Importeren", icon="📥"),
         st.Page("pages/day.py", title="Dagoverzicht", icon="📅"),
         st.Page("pages/weight.py", title="Gewicht", icon="⚖️"),

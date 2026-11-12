@@ -1,4 +1,4 @@
-"""Streamlit smoke tests for both logging pages, run against a temporary database."""
+"""Streamlit smoke tests for the app pages, run against a temporary database."""
 
 from pathlib import Path
 
@@ -8,10 +8,8 @@ from streamlit.testing.v1 import AppTest
 
 from core.db import create_db, get_engine
 from core.models import Food, FoodEntry, Goal, WeightEntry
-from core.parsing import ParsedItem, ParsedMeal
 
 APP_PATH = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
-TEXT_PAGE = "pages/log_text.py"
 MANUAL_PAGE = "pages/log_manual.py"
 
 
@@ -45,73 +43,9 @@ def engine(tmp_path, monkeypatch):
     engine.dispose()
 
 
-@pytest.fixture
-def parsed_meal(monkeypatch):
-    monkeypatch.setattr(
-        "core.parsing.parse_meal",
-        lambda text: ParsedMeal(
-            items=[
-                ParsedItem(name="kwark", quantity=200, unit="g"),
-                ParsedItem(name="banaan", quantity=1, unit="piece"),
-            ]
-        ),
-    )
-
-
 def entries(engine):
     with Session(engine) as session:
         return session.exec(select(FoodEntry).order_by(FoodEntry.id)).all()
-
-
-# --- Text page ---------------------------------------------------------------
-
-
-def test_text_page_with_empty_database_shows_import_hint(tmp_path, monkeypatch):
-    make_db(tmp_path, monkeypatch, "empty.db", with_foods=False)
-
-    at = AppTest.from_file(APP_PATH, default_timeout=30).run()
-
-    assert "leeg" in at.error[0].value
-
-
-def test_analyse_then_confirm_saves_entries(engine, parsed_meal):
-    at = AppTest.from_file(APP_PATH, default_timeout=30).run()
-
-    at.text_area[0].set_value("200g kwark met een banaan").run()
-    button(at, "Analyseer").click().run()
-
-    assert not at.exception
-    assert any("geschat" in c.value for c in at.caption)  # banana weight is a guess
-    assert at.number_input[0].value == 200
-    assert at.number_input[1].value == 100
-
-    at.number_input[1].set_value(120.0).run()
-    button(at, "Bevestig en sla op").click().run()
-
-    rows = entries(engine)
-    assert [r.amount_g for r in rows] == [200, 120]
-    assert rows[0].raw_text == "200g kwark met een banaan"
-    assert "opgeslagen" in at.success[0].value
-
-
-def test_removed_item_is_not_saved(engine, parsed_meal):
-    at = AppTest.from_file(APP_PATH, default_timeout=30).run()
-
-    at.text_area[0].set_value("200g kwark met een banaan").run()
-    button(at, "Analyseer").click().run()
-    at.checkbox[1].check().run()  # remove the banana
-    button(at, "Bevestig en sla op").click().run()
-
-    assert len(entries(engine)) == 1
-
-
-def test_nothing_is_saved_before_confirming(engine, parsed_meal):
-    at = AppTest.from_file(APP_PATH, default_timeout=30).run()
-
-    at.text_area[0].set_value("200g kwark met een banaan").run()
-    button(at, "Analyseer").click().run()
-
-    assert entries(engine) == []
 
 
 # --- Manual page -------------------------------------------------------------
@@ -395,3 +329,13 @@ def test_edit_section_without_own_foods_says_so(tmp_path, monkeypatch):
     at = open_manual_page()
 
     assert any("nog geen eigen" in c.value for c in at.caption)
+
+
+def test_empty_database_shows_import_hint(tmp_path, monkeypatch):
+    make_db(tmp_path, monkeypatch, "empty.db", with_foods=False)
+
+    at = AppTest.from_file(APP_PATH, default_timeout=30).run()
+
+    assert not at.exception
+    assert "leeg" in at.info[0].value
+    assert at.title[0].value == "Eten loggen"  # the log page is the default page

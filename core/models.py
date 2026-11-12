@@ -33,7 +33,6 @@ class FoodEntry(SQLModel, table=True):
     food_id: int = Field(foreign_key="foods.id", index=True)
     logged_at: NaiveDatetime  # local time, stored without timezone (single-user app)
     amount_g: float
-    raw_text: str | None = None  # original user input, for debugging/evals
 
 
 class WeightEntry(SQLModel, table=True):
