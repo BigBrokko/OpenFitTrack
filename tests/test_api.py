@@ -4,13 +4,16 @@ import pytest
 from fastapi.testclient import TestClient
 
 from api.main import create_app
+from tests.auth_helpers import PASSWORD, auth_settings
 from tests.seed import TODAY
 
 
 @pytest.fixture
 def client(seeded):
-    app = create_app(seeded, today=lambda: TODAY)
-    with TestClient(app) as test_client:
+    """A logged-in client. Login is tested in test_api_auth.py."""
+    app = create_app(seeded, auth_settings(), today=lambda: TODAY)
+    with TestClient(app, base_url="https://testserver") as test_client:
+        assert test_client.post("/api/login", json={"password": PASSWORD}).status_code == 204
         yield test_client
 
 
@@ -122,9 +125,10 @@ def test_invalid_parameters_are_rejected(client, path, params):
 
 
 def test_an_empty_database_gets_its_tables_and_returns_empty_answers(memory_engine):
-    app = create_app(memory_engine, today=lambda: TODAY)
+    app = create_app(memory_engine, auth_settings(), today=lambda: TODAY)
 
-    with TestClient(app) as client:
+    with TestClient(app, base_url="https://testserver") as client:
+        client.post("/api/login", json={"password": PASSWORD})
         assert client.get("/api/goals").json() == {"current": None, "history": []}
         assert client.get("/api/weight").json()["points"] == []
 
@@ -139,6 +143,9 @@ def test_openapi_describes_the_endpoints_with_readable_operation_ids(client):
     }
     assert operations == {
         "get_health",
+        "login",
+        "logout",
+        "get_me",
         "get_day_summary",
         "get_period_summary",
         "get_weight_trend",

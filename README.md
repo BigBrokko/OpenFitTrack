@@ -101,16 +101,37 @@ Use that as the command in the Claude configuration (`"command": "docker"`, the 
 ## API (work in progress)
 
 A FastAPI API over the same data is the base for a phone-friendly React web app (see the
-project plan). For now it is read-only, listens on `127.0.0.1` only, and has **no login
-yet**, so do not expose it to a network.
+project plan). For now it is read-only and listens on `127.0.0.1` only. Every endpoint except
+`/api/health` and the login endpoints needs a login.
+
+**Set a password first.** The API refuses to start without one. Run this yourself and paste
+the two lines it prints into your `.env` (your password is never stored, only its Argon2 hash):
+
+```bash
+uv run python scripts/create_credentials.py
+```
+
+Then start the API:
 
 ```bash
 uv run uvicorn api.server:app --reload
 ```
 
-Then open `http://127.0.0.1:8000/docs` for the interactive documentation. Endpoints:
-`/api/day`, `/api/period`, `/api/weight`, `/api/goals` and `/api/foods/search`. They return
-the same numbers as the MCP tools, because both use `core/reports.py`.
+- **Login:** `POST /api/login` with `{"password": "..."}` returns 204 and sets a session
+  cookie (HttpOnly, SameSite=Strict, Secure, valid for 14 days). `POST /api/logout` ends it
+  and `GET /api/me` tells whether you are logged in.
+- **Failed attempts:** after 5 wrong passwords within 15 minutes a client gets `429` with a
+  `Retry-After` header. The counters live in memory, so a restart resets them.
+- **HTTPS:** the cookie is `Secure`, so it is only sent over HTTPS (browsers make an
+  exception for `localhost`, Safari does not). To try the API over plain http, set
+  `OFT_COOKIE_SECURE=false`; never do that on a network you do not control.
+- **Docs:** `http://127.0.0.1:8000/docs` stays open (it contains no data). Log in with the
+  login endpoint there first to try the others.
+- **Endpoints:** `/api/day`, `/api/period`, `/api/weight`, `/api/goals` and
+  `/api/foods/search`. They return the same numbers as the MCP tools, because both use
+  `core/reports.py`.
+- **Changing the password** means running the script again and replacing both lines. A new
+  `OFT_SESSION_SECRET` logs every existing session out.
 
 ## Run with Docker
 
