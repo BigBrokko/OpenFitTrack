@@ -1,11 +1,11 @@
 """Import of the NEVO food composition table (pipe-delimited CSV) into `foods`."""
 
-from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from sqlmodel import Session, select
+from sqlmodel import Session
 
+from core.foods import ImportResult, upsert_foods
 from core.models import Food
 
 SOURCE = "nevo"
@@ -23,13 +23,6 @@ COL_FAT = "FAT (g)"
 # Foods are stored per 100 g. NEVO also has a few "per 100ml" rows (baby formula);
 # converting those to grams would need a density, so they are skipped.
 PER_100G = "per 100g"
-
-
-@dataclass
-class ImportResult:
-    added: int = 0
-    updated: int = 0
-    skipped: int = 0
 
 
 def _to_number(series: pd.Series) -> pd.Series:
@@ -73,21 +66,4 @@ def load_nevo(path: str | Path) -> tuple[list[Food], int]:
 
 def import_foods(session: Session, foods: list[Food]) -> ImportResult:
     """Upsert NEVO foods on (source, source_id). Foods from other sources are untouched."""
-    existing = {
-        f.source_id: f for f in session.exec(select(Food).where(Food.source == SOURCE)).all()
-    }
-    result = ImportResult()
-    for food in foods:
-        current = existing.get(food.source_id)
-        if current is None:
-            session.add(food)
-            result.added += 1
-        else:
-            current.name = food.name
-            current.kcal = food.kcal
-            current.protein_g = food.protein_g
-            current.carbs_g = food.carbs_g
-            current.fat_g = food.fat_g
-            result.updated += 1
-    session.commit()
-    return result
+    return upsert_foods(session, foods, SOURCE)

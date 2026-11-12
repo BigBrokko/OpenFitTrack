@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Always use the volume inside the container, whatever DATABASE_URL says in .env.
+      DATABASE_URL: sqlite:////data/openfittrack.db
+      # Default: the Ollama running on your own machine. Set OLLAMA_HOST_DOCKER in .env to
+      # use another one, e.g. http://ollama:11434 together with `--profile ollama`.
+      OLLAMA_HOST: ${OLLAMA_HOST_DOCKER:-http://host.docker.internal:11434}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # needed on Linux; Docker Desktop has it already
+    volumes:
+      - oft-data:/data
+      - ./data:/nevo:ro  # your NEVO download, read-only, for scripts/import_nevo.py
+    restart: unless-stopped
+
+  # Optional: Ollama in a container with NVIDIA GPU support.
+  # Start with: docker compose --profile ollama up
+  ollama:
+    profiles: ["ollama"]
+    image: ollama/ollama:0.40.9
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  oft-data:
+  ollama-models:

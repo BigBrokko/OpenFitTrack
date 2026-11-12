@@ -4,7 +4,7 @@ import streamlit as st
 from common import format_nutrients, get_app_engine, pick_datetime
 from sqlmodel import Session
 
-from core.foods import add_manual_food
+from core.foods import add_manual_food, list_manual_foods, update_manual_food
 from core.matching import search_foods
 from core.meal_log import save_entries
 from core.nutrition import entry_nutrients
@@ -77,3 +77,55 @@ with st.expander("Niet gevonden? Maak zelf een voedingsmiddel aan"):
         col_carbs.number_input("Koolhydraten (g)", min_value=0.0, step=0.1, key="nf_carbs")
         col_fat.number_input("Vet (g)", min_value=0.0, step=0.1, key="nf_fat")
         st.form_submit_button("Aanmaken", on_click=create_food)
+
+edit_message = st.session_state.pop("edit_message", None)
+with st.expander("Eigen producten bewerken", expanded=edit_message is not None):
+    if edit_message:
+        st.success(edit_message)
+
+    with Session(engine) as session:
+        own_foods = list_manual_foods(session)
+    if not own_foods:
+        st.caption("Je hebt nog geen eigen voedingsmiddelen.")
+    else:
+        st.caption(
+            "Alleen producten die je zelf hebt aangemaakt. Al gelogde regels gebruiken "
+            "meteen de nieuwe waarden."
+        )
+        names = {f.id: f.name for f in own_foods}
+        food_id = st.selectbox("Product", list(names), format_func=names.get, key="edit_pick")
+        current = next(f for f in own_foods if f.id == food_id)
+
+        with st.form("edit_food"):
+            new_name = st.text_input("Naam", value=current.name, key=f"ef_name_{food_id}")
+            st.caption("Waarden per 100 g")
+            col_kcal, col_protein, col_carbs, col_fat = st.columns(4)
+            new_kcal = col_kcal.number_input(
+                "kcal", min_value=0.0, step=1.0, value=current.kcal, key=f"ef_kcal_{food_id}"
+            )
+            new_protein = col_protein.number_input(
+                "Eiwit (g)", min_value=0.0, step=0.1, value=current.protein_g, key=f"ef_p_{food_id}"
+            )
+            new_carbs = col_carbs.number_input(
+                "Koolhydraten (g)",
+                min_value=0.0,
+                step=0.1,
+                value=current.carbs_g,
+                key=f"ef_c_{food_id}",
+            )
+            new_fat = col_fat.number_input(
+                "Vet (g)", min_value=0.0, step=0.1, value=current.fat_g, key=f"ef_f_{food_id}"
+            )
+            submitted = st.form_submit_button("Opslaan")
+
+        if submitted:
+            try:
+                with Session(engine) as session:
+                    update_manual_food(
+                        session, food_id, new_name, new_kcal, new_protein, new_carbs, new_fat
+                    )
+            except ValueError as error:
+                st.error(str(error))
+            else:
+                st.session_state.edit_message = f"'{new_name.strip()}' is bijgewerkt."
+                st.rerun()

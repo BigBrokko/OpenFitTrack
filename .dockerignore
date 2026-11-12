@@ -1,0 +1,21 @@
+# Secrets and local data must never end up in an image
+.env
+*.db
+*.sqlite3
+data/
+
+# Not needed at runtime
+.git/
+.github/
+.venv/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+.claude/
+CLAUDE.md
+tests/
+evals/
+README.md
+Dockerfile
+docker-compose.yml

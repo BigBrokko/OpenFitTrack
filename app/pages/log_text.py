@@ -17,9 +17,8 @@ with Session(engine) as session:
     food_count = session.exec(select(func.count()).select_from(Food)).one()
 if food_count == 0:
     st.error(
-        "De voedingsdatabase is leeg. Importeer eerst NEVO met "
-        "`uv run python scripts/import_nevo.py <pad naar NEVO csv>`, "
-        "of maak zelf voedingsmiddelen aan bij 'Handmatig toevoegen'."
+        "De voedingsdatabase is leeg. Importeer voedingsmiddelen uit een CSV-bestand bij "
+        "'Importeren', of maak ze zelf aan bij 'Handmatig toevoegen'."
     )
     st.stop()
 

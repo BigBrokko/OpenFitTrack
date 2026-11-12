@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from streamlit.testing.v1 import AppTest
 
 from core.db import create_db, get_engine
-from core.models import Food, FoodEntry, Goal
+from core.models import Food, FoodEntry, Goal, WeightEntry
 from core.parsing import ParsedItem, ParsedMeal
 
 APP_PATH = str(Path(__file__).resolve().parent.parent / "app" / "main.py")
@@ -288,3 +288,110 @@ def test_day_page_shows_overage(engine):
     at = open_day_page()
 
     assert any("+52 kcal over" in c.value for c in at.caption)
+
+
+# --- Weight page -------------------------------------------------------------
+
+
+def open_weight_page():
+    return (
+        AppTest.from_file(APP_PATH, default_timeout=30).run().switch_page("pages/weight.py").run()
+    )
+
+
+def weights(engine):
+    with Session(engine) as session:
+        return session.exec(select(WeightEntry).order_by(WeightEntry.date)).all()
+
+
+def test_weight_page_without_data_shows_hint(engine):
+    at = open_weight_page()
+
+    assert not at.exception
+    assert "Nog geen gewicht" in at.info[0].value
+
+
+def test_log_a_weight_shows_trend(engine):
+    at = open_weight_page()
+
+    at.number_input[0].set_value(80.5)
+    button(at, "Opslaan").click().run()
+
+    (row,) = weights(engine)
+    assert row.weight_kg == 80.5
+    assert "opgeslagen" in at.success[0].value
+    assert at.metric[0].value == "80.5 kg"
+    assert at.metric[2].value == "—"  # a single measurement has no weekly change yet
+
+
+def test_logging_the_same_day_twice_replaces_it(engine):
+    at = open_weight_page()
+
+    at.number_input[0].set_value(80.5)
+    button(at, "Opslaan").click().run()
+    at.number_input[0].set_value(79.9)
+    button(at, "Opslaan").click().run()
+
+    assert [w.weight_kg for w in weights(engine)] == [79.9]
+
+
+def test_implausible_weight_shows_error(engine):
+    at = open_weight_page()
+
+    at.number_input[0].set_value(750.0)
+    button(at, "Opslaan").click().run()
+
+    assert "between" in at.error[0].value
+    assert weights(engine) == []
+
+
+# --- Import and edit pages ---------------------------------------------------
+
+
+def test_import_page_asks_for_a_file(engine):
+    at = AppTest.from_file(APP_PATH, default_timeout=30).run().switch_page("pages/import_foods.py")
+    at.run()
+
+    assert not at.exception
+    assert at.title[0].value == "Importeren"
+
+
+def own_food(engine, name="Eigen granola", kcal=450.0):
+    with Session(engine) as session:
+        food = Food(name=name, source="manual", kcal=kcal, protein_g=10, carbs_g=60, fat_g=18)
+        session.add(food)
+        session.commit()
+        return food.id
+
+
+def test_edit_an_own_food(engine):
+    food_id = own_food(engine)
+    at = open_manual_page()
+
+    at.selectbox(key="edit_pick").set_value(food_id).run()
+    at.number_input(key=f"ef_kcal_{food_id}").set_value(400.0)
+    button(at, "Opslaan").click().run()
+
+    with Session(engine) as session:
+        assert session.get(Food, food_id).kcal == 400
+    assert "bijgewerkt" in at.success[0].value
+
+
+def test_edit_shows_validation_errors_and_changes_nothing(engine):
+    food_id = own_food(engine)
+    at = open_manual_page()
+
+    at.selectbox(key="edit_pick").set_value(food_id).run()
+    at.number_input(key=f"ef_p_{food_id}").set_value(80.0)  # 80 + 60 + 18 g per 100 g
+    button(at, "Opslaan").click().run()
+
+    assert "100 g" in at.error[0].value
+    with Session(engine) as session:
+        assert session.get(Food, food_id).protein_g == 10
+
+
+def test_edit_section_without_own_foods_says_so(tmp_path, monkeypatch):
+    make_db(tmp_path, monkeypatch, "nofoods.db", with_foods=False)
+    at = open_manual_page()
+
+    assert any("nog geen eigen" in c.value for c in at.caption)

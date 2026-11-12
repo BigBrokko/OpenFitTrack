@@ -15,23 +15,26 @@ DEFAULT_MODEL = "gemma3:12b"  # override with the OLLAMA_MODEL environment varia
 Unit = Literal["g", "kg", "ml", "l", "piece", "tbsp", "tsp", "slice", "cup", "portion"]
 
 SYSTEM_PROMPT = """\
-You extract the foods and drinks from a short meal description (usually Dutch) and \
-answer with JSON that matches the given schema.
+You extract the foods and drinks from a short meal description (in any language, \
+usually Dutch or English) and answer with JSON that matches the given schema.
 
 Rules:
 - Record every food or drink the user says they ate or drank, one item each.
-- name: the food in Dutch, singular, lowercase, without quantity or unit. Keep words \
-that change the product, e.g. "magere kwark", "volkoren brood".
+- name: the food in the same language the user wrote it in (do not translate), singular, \
+lowercase, without quantity or unit. Keep words that change the product, e.g. \
+"magere kwark", "volkoren brood", "whole wheat bread".
 - quantity and unit: exactly as stated by the user. Convert only spelled-out numbers \
-("twee" -> 2, "een halve" -> 0.5).
-- unit: map the Dutch word to the allowed unit:
-  gram, g -> g; kilo, kilogram -> kg; milliliter, ml -> ml; liter, l -> l;
-  eetlepel, el -> tbsp; theelepel, tl -> tsp;
-  plak, plakje, sneetje, snee -> slice; kop, kopje, mok -> cup;
-  glas, kom, bakje, schaal, bord, handje, handvol, scheutje, portie -> portion;
-  stuk, stuks, or a countable food without unit ("een banaan") -> piece;
-  anything else without a unit (e.g. "wat rijst") -> portion.
-  Example: "4 plakjes ham en een mok thee" -> ham 4 slice, thee 1 cup.
+("twee" -> 2, "een halve" -> 0.5, "two" -> 2, "half a" -> 0.5).
+- unit: map the word the user used to the allowed unit:
+  gram, g -> g; kilo, kilogram, kg -> kg; milliliter, ml -> ml; liter, litre, l -> l;
+  eetlepel, el, tablespoon, tbsp -> tbsp; theelepel, tl, teaspoon, tsp -> tsp;
+  plak, plakje, sneetje, snee, slice -> slice; kop, kopje, mok, cup, mug -> cup;
+  glas, kom, bakje, schaal, bord, handje, handvol, scheutje, portie, glass, bowl, plate, \
+handful, splash, serving, portion -> portion;
+  stuk, stuks, piece, or a countable food without unit ("een banaan", "a banana") -> piece;
+  anything else without a unit (e.g. "wat rijst", "some rice") -> portion.
+  Examples: "4 plakjes ham en een mok thee" -> ham 4 slice, thee 1 cup;
+  "3 slices of cheese and a mug of coffee" -> cheese 3 slice, coffee 1 cup.
 - Do not repeat the unit word in the name ("sneetje brood" -> name "brood").
 - Never convert to grams and never guess a weight. Never state calories or nutrition \
 values.
