@@ -1,4 +1,6 @@
-"""Tool logic: reads from `core` and shapes the answers. No MCP imports here.
+"""Report logic: reads from the database via `core` and shapes the answers.
+
+Shared by the MCP server and the API, so both give the same numbers. No framework imports.
 
 All numbers come from the user's own database and from plain Python in `core`.
 Values are rounded to one decimal to keep the answers short.
@@ -14,9 +16,7 @@ from core.goals import list_goals
 from core.matching import search_foods as core_search_foods
 from core.models import Goal
 from core.nutrition import Nutrients
-from core.stats import period_stats
-from core.weight import list_weights, trend_change, weight_trend
-from mcp_server.models import (
+from core.report_models import (
     DaySummary,
     DayTotals,
     FoodCandidate,
@@ -30,6 +30,8 @@ from mcp_server.models import (
     WeightPoint,
     WeightTrend,
 )
+from core.stats import period_stats
+from core.weight import list_weights, trend_change, weight_trend
 
 
 def _round(value: float) -> float:

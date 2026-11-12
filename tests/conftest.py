@@ -3,6 +3,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from core.db import create_db
+from tests.seed import seed
 
 
 @pytest.fixture
@@ -12,6 +13,12 @@ def memory_engine():
     )
     create_db(engine)
     return engine
+
+
+@pytest.fixture
+def seeded(memory_engine):
+    """The in-memory database filled with a small week of data (see tests/seed.py)."""
+    return seed(memory_engine)
 
 
 @pytest.fixture

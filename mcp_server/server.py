@@ -10,8 +10,8 @@ from pydantic import Field
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from mcp_server import tools
-from mcp_server.models import DaySummary, FoodSearchResult, GoalsInfo, PeriodSummary, WeightTrend
+from core import reports
+from core.report_models import DaySummary, FoodSearchResult, GoalsInfo, PeriodSummary, WeightTrend
 
 INSTRUCTIONS = (
     "OpenFitTrack is the user's own food, weight and goal log. Every value comes from the "
@@ -36,7 +36,7 @@ def create_server(engine: Engine, today: Callable[[], dt.date] = dt.date.today) 
     ) -> DaySummary:
         """One day: everything logged, the totals, and the totals compared to that day's goal."""
         with Session(engine) as session:
-            return tools.day_summary(session, date or today())
+            return reports.day_summary(session, date or today())
 
     @server.tool(title="Period overview", annotations=READ_ONLY)
     def get_period_summary(
@@ -54,7 +54,7 @@ def create_server(engine: Engine, today: Callable[[], dt.date] = dt.date.today) 
         """
         end = end_date or today()
         with Session(engine) as session:
-            return tools.period_summary(session, start_date or end - dt.timedelta(days=6), end)
+            return reports.period_summary(session, start_date or end - dt.timedelta(days=6), end)
 
     @server.tool(title="Weight trend", annotations=READ_ONLY)
     def get_weight_trend(
@@ -64,13 +64,13 @@ def create_server(engine: Engine, today: Callable[[], dt.date] = dt.date.today) 
     ) -> WeightTrend:
         """Weight measurements with an exponential moving average trend and the 7-day change."""
         with Session(engine) as session:
-            return tools.weight_summary(session, days, today())
+            return reports.weight_summary(session, days, today())
 
     @server.tool(title="Goals", annotations=READ_ONLY)
     def get_goals() -> GoalsInfo:
         """The goal that applies today and the history of all goals."""
         with Session(engine) as session:
-            return tools.goals_summary(session, today())
+            return reports.goals_summary(session, today())
 
     @server.tool(title="Search foods", annotations=READ_ONLY)
     def search_foods(
@@ -79,6 +79,6 @@ def create_server(engine: Engine, today: Callable[[], dt.date] = dt.date.today) 
     ) -> FoodSearchResult:
         """Find foods in the user's database. Values are per 100 g."""
         with Session(engine) as session:
-            return tools.food_search(session, query, limit)
+            return reports.food_search(session, query, limit)
 
     return server

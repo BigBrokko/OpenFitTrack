@@ -1,4 +1,6 @@
-"""Shapes of the tool answers. Field descriptions are shown to the AI model."""
+"""Shapes of the report answers, shared by the MCP server and the API.
+
+Field descriptions are shown to AI models and appear in the OpenAPI docs."""
 
 import datetime as dt
 

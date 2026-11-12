@@ -98,6 +98,20 @@ docker run -i --rm -v openfittrack_oft-data:/data:ro openfittrack-app python -m 
 Use that as the command in the Claude configuration (`"command": "docker"`, the rest as
 `args`). Docker Desktop must be running.
 
+## API (work in progress)
+
+A FastAPI API over the same data is the base for a phone-friendly React web app (see the
+project plan). For now it is read-only, listens on `127.0.0.1` only, and has **no login
+yet**, so do not expose it to a network.
+
+```bash
+uv run uvicorn api.server:app --reload
+```
+
+Then open `http://127.0.0.1:8000/docs` for the interactive documentation. Endpoints:
+`/api/day`, `/api/period`, `/api/weight`, `/api/goals` and `/api/foods/search`. They return
+the same numbers as the MCP tools, because both use `core/reports.py`.
+
 ## Run with Docker
 
 The app runs in a container; the database lives in a Docker volume, so it survives restarts.
@@ -121,8 +135,9 @@ Stop with `docker compose down` (your data stays); `docker compose down -v` also
 
 ## Structure
 
-- `core/` – all logic (matching, calculations, statistics, CSV import, database); no Streamlit imports
-- `app/` – Streamlit UI, only calls `core`
+- `core/` – all logic (matching, calculations, statistics, reports, CSV import, database); no framework imports
+- `api/` – FastAPI API, only calls `core`
+- `app/` – Streamlit UI (temporary, until the React frontend replaces it), only calls `core`
 - `mcp_server/` – read-only MCP server, only calls `core`
 - `scripts/` – helper scripts (NEVO import, demo data, MCP smoke test)
 - `tests/` – unit tests
