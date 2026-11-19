@@ -1,15 +1,21 @@
 import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { fakeServer, json, noContent, renderApp, unauthorized } from './test/utils'
-
-const loggedIn = () => json({ authenticated: true })
+import {
+  emptyDataHandlers,
+  fakeServer,
+  json,
+  loggedIn,
+  noContent,
+  renderApp,
+  unauthorized,
+} from './test/utils'
 
 function loggedOutServer(extra = {}) {
   return fakeServer({ 'GET /api/me': unauthorized, ...extra })
 }
 
 function loggedInServer(extra = {}) {
-  return fakeServer({ 'GET /api/me': loggedIn, ...extra })
+  return fakeServer({ ...emptyDataHandlers(), ...extra })
 }
 
 describe('access', () => {

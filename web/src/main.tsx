@@ -5,10 +5,11 @@ import { createBrowserRouter } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 import { ApiProvider } from './api/ApiContext'
 import { createApiClient } from './api/client'
+import { shouldRetry } from './api/data'
 import './index.css'
 import { routes } from './routes'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: shouldRetry } } })
 const api = createApiClient()
 const router = createBrowserRouter(routes)
 

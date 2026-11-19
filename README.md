@@ -136,9 +136,10 @@ uv run uvicorn api.server:app --reload
 ## Web app (work in progress)
 
 `web/` holds a mobile-first React + TypeScript app (Vite, Tailwind, TanStack Query) that
-talks to the API and can be installed as a PWA. For now it has a login screen and an
-empty shell with three tabs (Dag, Gewicht, Doelen); the pages follow. It needs Node 22.12 or
-newer.
+talks to the API and can be installed as a PWA. It has a login screen and three read-only
+pages: **Dag** (the day against your goal, with arrows to other days), **Gewicht** (weight,
+trend line and target, over 30 to 365 days) and **Doelen** (current goal and history).
+Logging and editing still happen in the Streamlit app for now. It needs Node 22.12 or newer.
 
 ```bash
 cd web

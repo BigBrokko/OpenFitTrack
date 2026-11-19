@@ -1,7 +1,9 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { RequireAuth } from './components/RequireAuth'
+import { DayPage } from './pages/DayPage'
+import { GoalsPage } from './pages/GoalsPage'
 import { LoginPage } from './pages/LoginPage'
-import { PlaceholderPage } from './pages/PlaceholderPage'
+import { WeightPage } from './pages/WeightPage'
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -10,9 +12,9 @@ export const routes: RouteObject[] = [
     element: <RequireAuth />,
     children: [
       { index: true, element: <Navigate to="/dag" replace /> },
-      { path: 'dag', element: <PlaceholderPage title="Dag" /> },
-      { path: 'gewicht', element: <PlaceholderPage title="Gewicht" /> },
-      { path: 'doelen', element: <PlaceholderPage title="Doelen" /> },
+      { path: 'dag', element: <DayPage /> },
+      { path: 'gewicht', element: <WeightPage /> },
+      { path: 'doelen', element: <GoalsPage /> },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

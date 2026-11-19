@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useApi } from './ApiContext'
 
 export type LoginErrorKind = 'wrong-password' | 'too-many-attempts' | 'network' | 'unknown'
@@ -20,6 +20,16 @@ export interface Me {
 }
 
 const ME_KEY = ['me']
+
+/**
+ * Marks the visitor as logged out and forgets everything loaded for them, so no health data
+ * lingers. The "me" query stays: screens listen to it, and queryClient.clear() would detach
+ * them from it.
+ */
+export function forgetSession(queryClient: QueryClient) {
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ME_KEY[0] })
+  queryClient.setQueryData<Me>(ME_KEY, { authenticated: false })
+}
 
 /** Whether the visitor is logged in. A network failure is an error, not "logged out". */
 export function useMe() {
@@ -67,12 +77,7 @@ export function useLogout() {
     mutationFn: async (): Promise<void> => {
       await api.POST('/api/logout')
     },
-    // Whatever the server said: forget everything we loaded, so no health data lingers.
-    // The "me" query stays (and is set to logged out): screens are listening to it, and
-    // queryClient.clear() would detach them from it.
-    onSettled: () => {
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== ME_KEY[0] })
-      queryClient.setQueryData<Me>(ME_KEY, { authenticated: false })
-    },
+    // Whatever the server said, this device is logged out afterwards.
+    onSettled: () => forgetSession(queryClient),
   })
 }
