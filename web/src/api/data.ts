@@ -16,7 +16,7 @@ export function shouldRetry(failureCount: number, error: Error): boolean {
   return !(error instanceof UnauthorizedError) && failureCount < 1
 }
 
-function unwrap<T>(queryClient: QueryClient, result: { data?: T; response: Response }): T {
+export function unwrap<T>(queryClient: QueryClient, result: { data?: T; response: Response }): T {
   if (result.response.status === 401) {
     forgetSession(queryClient) // the screens react by showing the login page
     throw new UnauthorizedError()

@@ -23,12 +23,14 @@ export function dayFixture(overrides: Partial<DaySummary> = {}): DaySummary {
     },
     entries: [
       {
+        id: 1,
         time: '08:30',
         food: 'Kwark volle',
         amount_g: 200,
         nutrients: { kcal: 236, protein_g: 15, carbs_g: 7.2, fat_g: 16 },
       },
       {
+        id: 2,
         time: '12:15',
         food: 'Banaan',
         amount_g: 100,

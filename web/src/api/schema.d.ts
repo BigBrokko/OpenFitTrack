@@ -24,6 +24,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Entry
+         * @description Log an amount of a food (by food id).
+         */
+        post: operations["create_entry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Entry
+         * @description Remove a logged line.
+         */
+        delete: operations["delete_entry"];
+        options?: never;
+        head?: never;
+        /**
+         * Update Entry
+         * @description Correct the amount (and optionally the time) of a logged line.
+         */
+        patch: operations["update_entry"];
+        trace?: never;
+    };
+    "/api/foods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Food
+         * @description Create your own food from values per 100 g.
+         */
+        post: operations["create_food"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/foods/search": {
         parameters: {
             query?: never;
@@ -44,6 +108,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/foods/{food_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Food
+         * @description Change one of your own foods (imported foods cannot be edited).
+         */
+        patch: operations["update_food"];
+        trace?: never;
+    };
     "/api/goals": {
         parameters: {
             query?: never;
@@ -56,7 +140,11 @@ export interface paths {
          * @description The goal that applies today and the goal history.
          */
         get: operations["get_goals"];
-        put?: never;
+        /**
+         * Put Goal
+         * @description Save a goal valid from a date. A goal already starting on that date is replaced.
+         */
+        put: operations["put_goal"];
         post?: never;
         delete?: never;
         options?: never;
@@ -167,7 +255,11 @@ export interface paths {
          * @description Weights with an exponential moving average trend and the 7-day change.
          */
         get: operations["get_weight_trend"];
-        put?: never;
+        /**
+         * Put Weight
+         * @description Save the weight of a day. A measurement already on that day is replaced.
+         */
+        put: operations["put_weight"];
         post?: never;
         delete?: never;
         options?: never;
@@ -210,6 +302,27 @@ export interface components {
             date: string;
             totals: components["schemas"]["NutrientValues"];
         };
+        /** EntryChange */
+        EntryChange: {
+            /** Amount G */
+            amount_g: number;
+            /** Logged At */
+            logged_at?: string | null;
+        };
+        /** EntryOut */
+        EntryOut: {
+            /** Amount G */
+            amount_g: number;
+            /** Food Id */
+            food_id: number;
+            /** Id */
+            id: number;
+            /**
+             * Logged At
+             * Format: date-time
+             */
+            logged_at: string;
+        };
         /** FoodCandidate */
         FoodCandidate: {
             /**
@@ -222,6 +335,11 @@ export interface components {
              * @description Per 100 g.
              */
             fat_g: number;
+            /**
+             * Id
+             * @description Identifies this food (used to log it).
+             */
+            id: number;
             /**
              * Kcal
              * @description Per 100 g.
@@ -245,6 +363,23 @@ export interface components {
              */
             source: string;
         };
+        /** FoodOut */
+        FoodOut: {
+            /** Carbs G */
+            carbs_g: number;
+            /** Fat G */
+            fat_g: number;
+            /** Id */
+            id: number;
+            /** Kcal */
+            kcal: number;
+            /** Name */
+            name: string;
+            /** Protein G */
+            protein_g: number;
+            /** Source */
+            source: string;
+        };
         /** FoodSearchResult */
         FoodSearchResult: {
             /** Query */
@@ -254,6 +389,34 @@ export interface components {
              * @description Best match first.
              */
             results: components["schemas"]["FoodCandidate"][];
+        };
+        /** FoodValues */
+        FoodValues: {
+            /** Carbs G */
+            carbs_g: number;
+            /** Fat G */
+            fat_g: number;
+            /** Kcal */
+            kcal: number;
+            /** Name */
+            name: string;
+            /** Protein G */
+            protein_g: number;
+        };
+        /** GoalIn */
+        GoalIn: {
+            /** Carbs G */
+            carbs_g: number;
+            /** Fat G */
+            fat_g: number;
+            /** Kcal */
+            kcal: number;
+            /** Protein G */
+            protein_g: number;
+            /** Target Weight Kg */
+            target_weight_kg?: number | null;
+            /** Valid From */
+            valid_from?: string | null;
         };
         /** GoalInfo */
         GoalInfo: {
@@ -295,6 +458,11 @@ export interface components {
             amount_g: number;
             /** Food */
             food: string;
+            /**
+             * Id
+             * @description Identifies this logged line (used to edit or delete it).
+             */
+            id: number;
             /** @description For this amount, not per 100 g. */
             nutrients: components["schemas"]["NutrientValues"];
             /**
@@ -312,6 +480,15 @@ export interface components {
         Me: {
             /** Authenticated */
             authenticated: boolean;
+        };
+        /** NewEntry */
+        NewEntry: {
+            /** Amount G */
+            amount_g: number;
+            /** Food Id */
+            food_id: number;
+            /** Logged At */
+            logged_at?: string | null;
         };
         /** NutrientValues */
         NutrientValues: {
@@ -390,6 +567,23 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** WeightIn */
+        WeightIn: {
+            /** Date */
+            date?: string | null;
+            /** Weight Kg */
+            weight_kg: number;
+        };
+        /** WeightOut */
+        WeightOut: {
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Weight Kg */
+            weight_kg: number;
         };
         /** WeightPoint */
         WeightPoint: {
@@ -474,6 +668,136 @@ export interface operations {
             };
         };
     };
+    create_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewEntry"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_entry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EntryChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_food: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodValues"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_foods: {
         parameters: {
             query: {
@@ -507,6 +831,41 @@ export interface operations {
             };
         };
     };
+    update_food: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                food_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FoodValues"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FoodOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_goals: {
         parameters: {
             query?: never;
@@ -523,6 +882,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GoalsInfo"];
+                };
+            };
+        };
+    };
+    put_goal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoalInfo"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -671,6 +1063,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WeightTrend"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_weight: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WeightIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WeightOut"];
                 };
             };
             /** @description Validation Error */

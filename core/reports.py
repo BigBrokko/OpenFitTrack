@@ -84,6 +84,7 @@ def day_summary(session: Session, day: dt.date) -> DaySummary:
         progress=_progress(compare_to_goal(totals, goal)) if goal else None,
         entries=[
             LoggedEntry(
+                id=e.id,
                 time=f"{e.logged_at:%H:%M}",
                 food=e.food_name,
                 amount_g=_round(e.amount_g),
@@ -159,6 +160,7 @@ def food_search(session: Session, query: str, limit: int) -> FoodSearchResult:
         query=query,
         results=[
             FoodCandidate(
+                id=m.food.id,
                 name=m.food.name,
                 source=m.food.source,
                 kcal=_round(m.food.kcal),

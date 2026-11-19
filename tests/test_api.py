@@ -151,5 +151,12 @@ def test_openapi_describes_the_endpoints_with_readable_operation_ids(client):
         "get_weight_trend",
         "get_goals",
         "search_foods",
+        "create_entry",
+        "update_entry",
+        "delete_entry",
+        "create_food",
+        "update_food",
+        "put_weight",
+        "put_goal",
     }
     assert "DaySummary" in spec["components"]["schemas"]

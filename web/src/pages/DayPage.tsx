@@ -1,6 +1,7 @@
-import { useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { UnauthorizedError, useDay } from '../api/data'
 import type { DaySummary, ProgressItem } from '../api/types'
+import { EntryRow } from '../components/EntryRow'
 import { ProgressBar } from '../components/ProgressBar'
 import { ErrorMessage, Hint, LoadingMessage } from '../components/QueryStatus'
 import {
@@ -73,12 +74,14 @@ export function DayPage() {
       {day.isError && !(day.error instanceof UnauthorizedError) && (
         <ErrorMessage onRetry={() => day.refetch()} />
       )}
-      {day.data && <DayContent data={day.data} />}
+      {day.data && <DayContent data={day.data} date={date} today={today} />}
     </section>
   )
 }
 
-function DayContent({ data }: { data: DaySummary }) {
+function DayContent({ data, date, today }: { data: DaySummary; date: ISODate; today: ISODate }) {
+  // The add screen opens for the day that is shown.
+  const addPath = date === today ? '/dag/toevoegen' : `/dag/toevoegen?date=${date}`
   return (
     <>
       {data.goal === null && <Hint>Voor deze dag is geen doel ingesteld.</Hint>}
@@ -102,21 +105,17 @@ function DayContent({ data }: { data: DaySummary }) {
           <Hint>Voor deze dag is niets gelogd. Dat betekent niet dat je niets hebt gegeten.</Hint>
         ) : (
           <ul className="divide-y divide-slate-200 dark:divide-slate-800">
-            {data.entries.map((entry, index) => (
-              <li key={index} className="flex items-baseline justify-between gap-3 py-2">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{entry.food}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {entry.time} · {formatAmount(entry.amount_g, 'g')} g
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-medium">
-                  {formatAmount(entry.nutrients.kcal, 'kcal')} kcal
-                </p>
-              </li>
+            {data.entries.map((entry) => (
+              <EntryRow key={entry.id} entry={entry} />
             ))}
           </ul>
         )}
+        <Link
+          to={addPath}
+          className="flex min-h-11 items-center justify-center rounded-md bg-green-700 px-4 font-medium text-white hover:bg-green-800"
+        >
+          Eten toevoegen
+        </Link>
       </div>
     </>
   )

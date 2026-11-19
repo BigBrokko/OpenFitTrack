@@ -84,6 +84,61 @@
         "title": "DayTotals",
         "type": "object"
       },
+      "EntryChange": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_g": {
+            "title": "Amount G",
+            "type": "number"
+          },
+          "logged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logged At"
+          }
+        },
+        "required": [
+          "amount_g"
+        ],
+        "title": "EntryChange",
+        "type": "object"
+      },
+      "EntryOut": {
+        "properties": {
+          "amount_g": {
+            "title": "Amount G",
+            "type": "number"
+          },
+          "food_id": {
+            "title": "Food Id",
+            "type": "integer"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "logged_at": {
+            "format": "date-time",
+            "title": "Logged At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "food_id",
+          "logged_at",
+          "amount_g"
+        ],
+        "title": "EntryOut",
+        "type": "object"
+      },
       "FoodCandidate": {
         "properties": {
           "carbs_g": {
@@ -95,6 +150,11 @@
             "description": "Per 100 g.",
             "title": "Fat G",
             "type": "number"
+          },
+          "id": {
+            "description": "Identifies this food (used to log it).",
+            "title": "Id",
+            "type": "integer"
           },
           "kcal": {
             "description": "Per 100 g.",
@@ -122,6 +182,7 @@
           }
         },
         "required": [
+          "id",
           "name",
           "source",
           "kcal",
@@ -131,6 +192,49 @@
           "score"
         ],
         "title": "FoodCandidate",
+        "type": "object"
+      },
+      "FoodOut": {
+        "properties": {
+          "carbs_g": {
+            "title": "Carbs G",
+            "type": "number"
+          },
+          "fat_g": {
+            "title": "Fat G",
+            "type": "number"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kcal": {
+            "title": "Kcal",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "protein_g": {
+            "title": "Protein G",
+            "type": "number"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "source",
+          "kcal",
+          "protein_g",
+          "carbs_g",
+          "fat_g"
+        ],
+        "title": "FoodOut",
         "type": "object"
       },
       "FoodSearchResult": {
@@ -153,6 +257,92 @@
           "results"
         ],
         "title": "FoodSearchResult",
+        "type": "object"
+      },
+      "FoodValues": {
+        "additionalProperties": false,
+        "properties": {
+          "carbs_g": {
+            "title": "Carbs G",
+            "type": "number"
+          },
+          "fat_g": {
+            "title": "Fat G",
+            "type": "number"
+          },
+          "kcal": {
+            "title": "Kcal",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "protein_g": {
+            "title": "Protein G",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "kcal",
+          "protein_g",
+          "carbs_g",
+          "fat_g"
+        ],
+        "title": "FoodValues",
+        "type": "object"
+      },
+      "GoalIn": {
+        "additionalProperties": false,
+        "properties": {
+          "carbs_g": {
+            "title": "Carbs G",
+            "type": "number"
+          },
+          "fat_g": {
+            "title": "Fat G",
+            "type": "number"
+          },
+          "kcal": {
+            "title": "Kcal",
+            "type": "number"
+          },
+          "protein_g": {
+            "title": "Protein G",
+            "type": "number"
+          },
+          "target_weight_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Weight Kg"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "required": [
+          "kcal",
+          "protein_g",
+          "carbs_g",
+          "fat_g"
+        ],
+        "title": "GoalIn",
         "type": "object"
       },
       "GoalInfo": {
@@ -253,6 +443,11 @@
             "title": "Food",
             "type": "string"
           },
+          "id": {
+            "description": "Identifies this logged line (used to edit or delete it).",
+            "title": "Id",
+            "type": "integer"
+          },
           "nutrients": {
             "$ref": "#/components/schemas/NutrientValues",
             "description": "For this amount, not per 100 g."
@@ -264,6 +459,7 @@
           }
         },
         "required": [
+          "id",
           "time",
           "food",
           "amount_g",
@@ -297,6 +493,37 @@
           "authenticated"
         ],
         "title": "Me",
+        "type": "object"
+      },
+      "NewEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_g": {
+            "title": "Amount G",
+            "type": "number"
+          },
+          "food_id": {
+            "title": "Food Id",
+            "type": "integer"
+          },
+          "logged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Logged At"
+          }
+        },
+        "required": [
+          "food_id",
+          "amount_g"
+        ],
+        "title": "NewEntry",
         "type": "object"
       },
       "NutrientValues": {
@@ -486,6 +713,51 @@
         "title": "ValidationError",
         "type": "object"
       },
+      "WeightIn": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date"
+          },
+          "weight_kg": {
+            "title": "Weight Kg",
+            "type": "number"
+          }
+        },
+        "required": [
+          "weight_kg"
+        ],
+        "title": "WeightIn",
+        "type": "object"
+      },
+      "WeightOut": {
+        "properties": {
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "weight_kg": {
+            "title": "Weight Kg",
+            "type": "number"
+          }
+        },
+        "required": [
+          "date",
+          "weight_kg"
+        ],
+        "title": "WeightOut",
+        "type": "object"
+      },
       "WeightPoint": {
         "properties": {
           "date": {
@@ -642,6 +914,165 @@
         "summary": "Get Day Summary"
       }
     },
+    "/api/entries": {
+      "post": {
+        "description": "Log an amount of a food (by food id).",
+        "operationId": "create_entry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEntry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Entry"
+      }
+    },
+    "/api/entries/{entry_id}": {
+      "delete": {
+        "description": "Remove a logged line.",
+        "operationId": "delete_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Entry"
+      },
+      "patch": {
+        "description": "Correct the amount (and optionally the time) of a logged line.",
+        "operationId": "update_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "title": "Entry Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Entry"
+      }
+    },
+    "/api/foods": {
+      "post": {
+        "description": "Create your own food from values per 100 g.",
+        "operationId": "create_food",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodValues"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Food"
+      }
+    },
     "/api/foods/search": {
       "get": {
         "description": "Find foods in the database. Values are per 100 g.",
@@ -697,6 +1128,56 @@
         "summary": "Search Foods"
       }
     },
+    "/api/foods/{food_id}": {
+      "patch": {
+        "description": "Change one of your own foods (imported foods cannot be edited).",
+        "operationId": "update_food",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "food_id",
+            "required": true,
+            "schema": {
+              "title": "Food Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FoodValues"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FoodOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Food"
+      }
+    },
     "/api/goals": {
       "get": {
         "description": "The goal that applies today and the goal history.",
@@ -714,6 +1195,43 @@
           }
         },
         "summary": "Get Goals"
+      },
+      "put": {
+        "description": "Save a goal valid from a date. A goal already starting on that date is replaced.",
+        "operationId": "put_goal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoalIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoalInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Goal"
       }
     },
     "/api/health": {
@@ -911,6 +1429,43 @@
           }
         },
         "summary": "Get Weight Trend"
+      },
+      "put": {
+        "description": "Save the weight of a day. A measurement already on that day is replaced.",
+        "operationId": "put_weight",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeightIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeightOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Weight"
       }
     }
   }

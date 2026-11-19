@@ -11,8 +11,9 @@ Python, and a connected model can only read the data.
 ## Status
 
 Working: food logging by search, CSV food import, your own foods, daily overview against
-goals, weight with an EMA trend line, goals, and a read-only MCP server (stdio). Not yet:
-MCP over HTTPS for ChatGPT and claude.ai (that needs authentication).
+goals, weight with an EMA trend line, goals, a read-only MCP server (stdio), a phone-friendly
+web app (PWA) and a Docker image, reachable from your phone over Tailscale. Not yet: MCP over
+HTTPS for ChatGPT and claude.ai (that needs a public address and its own authentication).
 
 ## Setup
 
@@ -21,18 +22,28 @@ uv sync
 cp .env.example .env
 uv run pytest
 uv run ruff check
-uv run streamlit run app/main.py
 ```
+
+To use the app, set a password (see "API" below) and run the API and the web app, or run it
+all in one container (see "Run with Docker").
 
 ## Food data
 
-The app starts with an empty food database. Add foods in the app:
+The app starts with an empty food database. Add foods in two ways:
 
-- **Importeren:** upload a CSV file, check the suggested column mapping and import it.
-  Values must be per 100 g; semicolon or comma separated, decimal comma or point are
-  detected. Importing the same file again updates instead of duplicating.
-- **Eten loggen:** search a food and log an amount in grams. You can also create your
-  own foods there, and edit them later.
+- **Your own foods:** in the app, on **Dag** → **Eten toevoegen** → **Nieuw product maken**.
+  You can edit them later.
+- **Import a CSV file** (a food table of your own country, any language) with
+  `scripts/import_csv.py`. Values must be per 100 g; semicolon or comma separated, decimal
+  comma or point are detected, and the columns are guessed from the header names. Without
+  `--per-100g` it only shows what it would import; importing the same file again updates
+  instead of duplicating.
+
+```bash
+uv run python scripts/import_csv.py foods.csv             # preview, imports nothing
+uv run python scripts/import_csv.py foods.csv --per-100g  # import
+uv run python scripts/import_csv.py --help                # choose columns yourself
+```
 
 The UI itself is Dutch for now.
 
@@ -101,7 +112,7 @@ Use that as the command in the Claude configuration (`"command": "docker"`, the 
 ## API (work in progress)
 
 A FastAPI API over the same data is the base for a phone-friendly React web app (see the
-project plan). For now it is read-only and listens on `127.0.0.1` only. Every endpoint except
+project plan). It listens on `127.0.0.1` only. Every endpoint except
 `/api/health` and the login endpoints needs a login.
 
 **Set a password first.** The API refuses to start without one. Run this yourself and paste
@@ -130,16 +141,21 @@ uv run uvicorn api.server:app --reload
 - **Endpoints:** `/api/day`, `/api/period`, `/api/weight`, `/api/goals` and
   `/api/foods/search`. They return the same numbers as the MCP tools, because both use
   `core/reports.py`.
+- **Writing:** `POST /api/entries` (log a food by id and grams), `PATCH`/`DELETE
+  /api/entries/{id}`, `POST /api/foods` and `PATCH /api/foods/{id}` (your own foods),
+  `PUT /api/weight` and `PUT /api/goals`. Invalid values give `400`, an unknown id `404`.
+  The MCP server stays read-only; only the logged-in web app writes.
 - **Changing the password** means running the script again and replacing both lines. A new
   `OFT_SESSION_SECRET` logs every existing session out.
 
 ## Web app (work in progress)
 
 `web/` holds a mobile-first React + TypeScript app (Vite, Tailwind, TanStack Query) that
-talks to the API and can be installed as a PWA. It has a login screen and three read-only
-pages: **Dag** (the day against your goal, with arrows to other days), **Gewicht** (weight,
-trend line and target, over 30 to 365 days) and **Doelen** (current goal and history).
-Logging and editing still happen in the Streamlit app for now. It needs Node 22.12 or newer.
+talks to the API and can be installed as a PWA. It has a login screen and three pages:
+**Dag** (the day against your goal, with arrows to other days; log food by searching, correct
+or delete a line, create and edit your own foods), **Gewicht** (log your weight; trend line
+and target over 30 to 365 days) and **Doelen** (set a goal; current goal and history).
+Importing a CSV file is a script for now (see "Food data"). It needs Node 22.12 or newer.
 
 ```bash
 cd web
@@ -172,36 +188,99 @@ cookie works without CORS settings.
 - **Installing on a phone needs HTTPS.** Browsers only allow installing a web app and
   registering a service worker on HTTPS (or `localhost`). Plain `http://192.168...` over
   Wi-Fi therefore cannot install the app, and logging in there also fails because the
-  cookie is `Secure` (unless `OFT_COOKIE_SECURE=false`, for a short test only). A trusted
-  HTTPS address, for example through Tailscale, is the last step of the project plan.
+  cookie is `Secure` (unless `OFT_COOKIE_SECURE=false`, for a short test only). See
+  "Reach the app from your phone" for a trusted HTTPS address.
 
 ## Run with Docker
 
-The app runs in a container; the database lives in a Docker volume, so it survives restarts.
+One container serves the website and the API (the image is built in three stages: Node builds
+the web app, uv installs the Python packages, and the final image has neither). The database
+lives in a Docker volume, so it survives restarts.
+
+Create the login first (see "API" above) so that `.env` has `OFT_PASSWORD_HASH` and
+`OFT_SESSION_SECRET`; compose passes `.env` to the container, the image contains no secrets.
 
 ```bash
-docker compose up -d --build  # app on http://localhost:8501
+docker compose up -d --build  # app on http://localhost:8000
 ```
 
-Add foods through the app's **Importeren** page (upload a CSV, no mounting needed).
-For the Dutch NEVO table you can also use the script; put the download under `data/`, which
-is mounted read-only at `/nevo` (the path below is inside the container):
+It listens on `127.0.0.1` only. The login cookie is `Secure`, which browsers accept on
+`localhost`; for your phone you need HTTPS (see "Reach the app from your phone").
+
+Add foods with the CSV script; put the file under `data/`, which is mounted read-only at
+`/import` (the path below is inside the container):
 
 ```bash
-docker compose run --rm app python scripts/import_nevo.py /nevo/NEVO2025_v9.0/NEVO2025_v9.0.csv
+docker compose run --rm app python scripts/import_csv.py /import/foods.csv --per-100g
 ```
+
+For the Dutch NEVO table use `scripts/import_nevo.py` in the same way.
 
 Git Bash on Windows rewrites paths that start with `/`; prefix the command with
 `MSYS_NO_PATHCONV=1`, or use PowerShell.
 
 Stop with `docker compose down` (your data stays); `docker compose down -v` also deletes it.
 
+## Reach the app from your phone (Tailscale)
+
+[Tailscale](https://tailscale.com) is a private network (a VPN) between your own devices.
+With *Tailscale Serve* your computer gives the app a real HTTPS address that only your own
+devices can open. Nothing is made public. HTTPS is what lets the login cookie, the service
+worker and "install as app" work on a phone.
+
+**One-time setup** (accounts and network settings are yours to change, not the project's):
+
+1. Install Tailscale on the computer that runs the app and on your phone, and log in to the
+   same account on both. Turn on two-factor authentication for that account.
+2. In the [Tailscale admin console](https://login.tailscale.com/admin/dns), under **DNS**,
+   check that **MagicDNS** is on, then press **Enable HTTPS** under *HTTPS Certificates*.
+   Certificates are listed in public Certificate Transparency logs, **including the machine
+   name**, so give your computer a neutral name first (for example `fit-pc`, not your own
+   name).
+3. Start the app (`docker compose up -d`, see above) and, on the computer, run:
+
+```bash
+tailscale serve --bg --https=443 127.0.0.1:8000
+tailscale serve status        # shows your address, https://<machine>.<tailnet>.ts.net
+```
+
+Open that address on your phone with Tailscale switched on and log in. The `--bg` setting
+survives restarts of Tailscale and the computer. Do **not** use `tailscale funnel`: that
+makes the app public on the internet.
+
+**Install it as an app:** on iPhone open the address in Safari, then Share → *Add to Home
+Screen*. On Android open it in Chrome, then menu → *Install app*.
+
+**Check that it works:**
+
+- on your phone, switch off Wi-Fi (mobile data only) with Tailscale on: the app loads and
+  you can log in;
+- switch Tailscale off on the phone: the address no longer opens, which is the point;
+- log a meal on the phone and see it on the computer.
+
+**Good to know:**
+
+- The computer must be on, Docker running, and Tailscale connected. Docker restarts the
+  container by itself (`restart: unless-stopped`) once Docker Desktop is running; let
+  Docker Desktop start at login if you want that automatic.
+- The container still listens on `127.0.0.1` only. Tailscale on the same computer is the
+  only way in; do not change the port mapping to `0.0.0.0`.
+- The limit of 5 wrong passwords counts per address, and behind Tailscale and Docker every
+  request looks the same. After 5 wrong attempts the login is closed for 15 minutes for all
+  your devices. Only your own devices are on the network, so this is fine in practice.
+- **Lost phone:** remove the device in the Tailscale admin console (*Machines*), and replace
+  `OFT_SESSION_SECRET` in `.env` (run `scripts/create_credentials.py` again) and restart the
+  container: that logs out every session.
+- Turn the address off with `tailscale serve --https=443 off` (or `tailscale serve reset`).
+- Running the app on a NAS or a Raspberry Pi instead of your computer? Then run Tailscale
+  as a second container next to the app (Tailscale publishes an official image and a
+  `TS_SERVE_CONFIG` setting for this) so the app stays reachable while your computer is off.
+
 ## Structure
 
 - `core/` – all logic (matching, calculations, statistics, reports, CSV import, database); no framework imports
 - `api/` – FastAPI API, only calls `core`
 - `web/` – React frontend, only talks to the API
-- `app/` – Streamlit UI (temporary, until the React frontend replaces it), only calls `core`
 - `mcp_server/` – read-only MCP server, only calls `core`
-- `scripts/` – helper scripts (NEVO import, demo data, MCP smoke test)
+- `scripts/` – helper scripts (CSV and NEVO import, demo data, credentials, MCP smoke test)
 - `tests/` – unit tests

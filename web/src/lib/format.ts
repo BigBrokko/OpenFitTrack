@@ -24,7 +24,18 @@ export function formatSigned(value: number, decimals = 1): string {
   return `${value > 0 ? '+' : MINUS}${digits}`
 }
 
-export type Unit = 'kcal' | 'g' | 'kg'
+/** What a person typed ("12,5" or "12.5") as a number; null when it is not a plain number. */
+export function parseDecimal(text: string): number | null {
+  const normalized = text.trim().replace(',', '.')
+  return /^\d+(\.\d+)?$/.test(normalized) ? Number(normalized) : null
+}
+
+/** A number as text for an input field: decimal comma, no thousands separator. */
+export function toInputText(value: number | null | undefined): string {
+  return value === null || value === undefined ? '' : String(value).replace('.', ',')
+}
+
+export type Unit ='kcal' | 'g' | 'kg'
 
 /** kcal as whole numbers, grams with at most one decimal. */
 export function formatAmount(value: number, unit: Unit): string {

@@ -31,6 +31,7 @@ class ProgressItem(BaseModel):
 
 
 class LoggedEntry(BaseModel):
+    id: int = Field(description="Identifies this logged line (used to edit or delete it).")
     time: str = Field(description="Local time, HH:MM.")
     food: str
     amount_g: float
@@ -92,6 +93,7 @@ class GoalsInfo(BaseModel):
 
 
 class FoodCandidate(BaseModel):
+    id: int = Field(description="Identifies this food (used to log it).")
     name: str
     source: str = Field(description="Where the food came from, e.g. manual or an import name.")
     kcal: float = Field(description="Per 100 g.")

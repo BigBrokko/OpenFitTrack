@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { RequireAuth } from './components/RequireAuth'
+import { AddFoodPage } from './pages/AddFoodPage'
 import { DayPage } from './pages/DayPage'
 import { GoalsPage } from './pages/GoalsPage'
 import { LoginPage } from './pages/LoginPage'
@@ -13,6 +14,7 @@ export const routes: RouteObject[] = [
     children: [
       { index: true, element: <Navigate to="/dag" replace /> },
       { path: 'dag', element: <DayPage /> },
+      { path: 'dag/toevoegen', element: <AddFoodPage /> },
       { path: 'gewicht', element: <WeightPage /> },
       { path: 'doelen', element: <GoalsPage /> },
     ],

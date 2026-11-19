@@ -1,6 +1,6 @@
 """Import foods from any CSV file, using a mapping of columns to food fields.
 
-Everything is read as "per 100 g". The caller (the importer page) makes the user confirm
+Everything is read as "per 100 g". The caller (the import script) makes the user confirm
 that, because a file in "per serving" or "per 100 ml" would give silently wrong values.
 """
 
@@ -10,6 +10,7 @@ import math
 import re
 import unicodedata
 from dataclasses import dataclass
+from pathlib import Path
 
 import pandas as pd
 
@@ -154,6 +155,36 @@ def guess_mapping(columns: list[str]) -> dict[str, str | None]:
             used.add(column)
             break
     return guess
+
+
+def default_source(file_name: str) -> str:
+    """A source name from a file name: "Mijn Tabel (v2).csv" becomes "mijn-tabel-v2"."""
+    return re.sub(r"[^a-z0-9]+", "-", Path(file_name).stem.lower()).strip("-") or "csv"
+
+
+def resolve_mapping(columns: list[str], chosen: dict[str, str | None]) -> ColumnMapping:
+    """The guessed mapping, with `chosen` columns (by field name) taking precedence.
+
+    Raises ValueError for a column that is not in the file or a required field without a column.
+    """
+    unknown = [c for c in chosen.values() if c is not None and c not in columns]
+    if unknown:
+        raise ValueError(f"Columns not in the file: {', '.join(unknown)}")
+    mapping = {**guess_mapping(columns), **{k: v for k, v in chosen.items() if v is not None}}
+    missing = [f for f in ("name", "protein_g", "carbs_g", "fat_g") if mapping[f] is None]
+    if missing:
+        raise ValueError(f"No column found for: {', '.join(missing)}. Choose one explicitly.")
+    if mapping["kcal"] is None and mapping["kj"] is None:
+        raise ValueError("No kcal or kJ column found. Choose one explicitly.")
+    return ColumnMapping(
+        name=mapping["name"],
+        protein_g=mapping["protein_g"],
+        carbs_g=mapping["carbs_g"],
+        fat_g=mapping["fat_g"],
+        kcal=mapping["kcal"],
+        kj=mapping["kj"],
+        source_id=mapping["source_id"],
+    )
 
 
 # --- Converting --------------------------------------------------------------

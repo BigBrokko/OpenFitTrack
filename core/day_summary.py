@@ -15,6 +15,7 @@ class DayEntry:
     food_name: str
     amount_g: float
     nutrients: Nutrients
+    id: int  # FoodEntry id, so a client can edit or delete this line
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,13 @@ def day_entries(session: Session, day: date) -> list[DayEntry]:
         .order_by(FoodEntry.logged_at, FoodEntry.id)
     )
     return [
-        DayEntry(entry.logged_at, food.name, entry.amount_g, entry_nutrients(food, entry.amount_g))
+        DayEntry(
+            entry.logged_at,
+            food.name,
+            entry.amount_g,
+            entry_nutrients(food, entry.amount_g),
+            entry.id,
+        )
         for entry, food in session.exec(statement)
     ]
 

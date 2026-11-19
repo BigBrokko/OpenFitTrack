@@ -3,18 +3,36 @@
 import datetime as dt
 from collections.abc import Callable, Iterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, FastAPI, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, Response
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from api.auth import AuthSettings, LoginLimiter, build_auth_router, require_login
-from core import reports
+from api.inputs import (
+    EntryChange,
+    EntryOut,
+    FoodOut,
+    FoodValues,
+    GoalIn,
+    NewEntry,
+    WeightIn,
+    WeightOut,
+)
+from core import foods, goals, meal_log, reports, weight
 from core.db import create_db
-from core.report_models import DaySummary, FoodSearchResult, GoalsInfo, PeriodSummary, WeightTrend
+from core.report_models import (
+    DaySummary,
+    FoodSearchResult,
+    GoalInfo,
+    GoalsInfo,
+    PeriodSummary,
+    WeightTrend,
+)
 
 SESSION_COOKIE = "oft_session"
 
@@ -23,9 +41,15 @@ def create_app(
     engine: Engine,
     auth: AuthSettings,
     today: Callable[[], dt.date] = dt.date.today,
+    now: Callable[[], dt.datetime] = dt.datetime.now,
     limiter: LoginLimiter | None = None,
+    web_dir: Path | None = None,
 ) -> FastAPI:
-    """Build the API around a database engine. `today` and `limiter` can be replaced in tests."""
+    """Build the API around a database engine. Tests can replace `today`, `now`, `limiter`.
+
+    With `web_dir` (the built React app, web/dist) the app is served as well: one process for
+    the website and the API.
+    """
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -58,6 +82,10 @@ def create_app(
     async def value_error_handler(_: Request, error: ValueError) -> JSONResponse:
         # core raises ValueError for invalid input (e.g. an end date before the start date)
         return JSONResponse(status_code=400, content={"detail": str(error)})
+
+    @app.exception_handler(LookupError)
+    async def lookup_error_handler(_: Request, error: LookupError) -> JSONResponse:
+        return JSONResponse(status_code=404, content={"detail": str(error)})
 
     # Public: health (for the Docker healthcheck) and the login endpoints.
     @app.get("/api/health")
@@ -113,5 +141,66 @@ def create_app(
         """Find foods in the database. Values are per 100 g."""
         return reports.food_search(session, q, limit)
 
+    # --- write endpoints -----------------------------------------------------------------
+    # The session cookie is SameSite=Strict, so other websites cannot trigger these.
+
+    @protected.post("/api/entries", status_code=201)
+    def create_entry(session: SessionDep, body: NewEntry) -> EntryOut:
+        """Log an amount of a food (by food id)."""
+        when = body.logged_at or now().replace(second=0, microsecond=0)
+        return meal_log.log_food(session, body.food_id, body.amount_g, when)
+
+    @protected.patch("/api/entries/{entry_id}")
+    def update_entry(session: SessionDep, entry_id: int, body: EntryChange) -> EntryOut:
+        """Correct the amount (and optionally the time) of a logged line."""
+        return meal_log.update_entry(session, entry_id, body.amount_g, body.logged_at)
+
+    @protected.delete("/api/entries/{entry_id}", status_code=204)
+    def delete_entry(session: SessionDep, entry_id: int) -> Response:
+        """Remove a logged line."""
+        meal_log.delete_entry(session, entry_id)
+        return Response(status_code=204)
+
+    @protected.post("/api/foods", status_code=201)
+    def create_food(session: SessionDep, body: FoodValues) -> FoodOut:
+        """Create your own food from values per 100 g."""
+        return foods.add_manual_food(session, **body.model_dump())
+
+    @protected.patch("/api/foods/{food_id}")
+    def update_food(session: SessionDep, food_id: int, body: FoodValues) -> FoodOut:
+        """Change one of your own foods (imported foods cannot be edited)."""
+        return foods.update_manual_food(session, food_id, **body.model_dump())
+
+    @protected.put("/api/weight")
+    def put_weight(session: SessionDep, body: WeightIn) -> WeightOut:
+        """Save the weight of a day. A measurement already on that day is replaced."""
+        return weight.log_weight(session, body.date or today(), body.weight_kg)
+
+    @protected.put("/api/goals")
+    def put_goal(session: SessionDep, body: GoalIn) -> GoalInfo:
+        """Save a goal valid from a date. A goal already starting on that date is replaced."""
+        values = body.model_dump()
+        values["valid_from"] = body.valid_from or today()
+        return goals.set_goal(session, **values)
+
     app.include_router(protected)
+    if web_dir is not None:
+        _serve_frontend(app, web_dir)
     return app
+
+
+def _serve_frontend(app: FastAPI, web_dir: Path) -> None:
+    """Serve the built frontend. Registered last, so /api, /docs and /openapi.json win."""
+    root = web_dir.resolve()
+    index = root / "index.html"
+    if not index.is_file():
+        raise ValueError(f"No built web app in {root} (index.html is missing).")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend(path: str) -> FileResponse:
+        if path == "api" or path.startswith("api/"):
+            raise HTTPException(404)  # an unknown API path must not answer with a web page
+        candidate = (root / path).resolve()
+        if candidate.is_file() and candidate.is_relative_to(root):
+            return FileResponse(candidate)
+        return FileResponse(index)  # a page of the app (e.g. /dag): the app routes it itself

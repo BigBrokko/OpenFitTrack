@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router'
 import { UnauthorizedError, useWeight } from '../api/data'
 import type { WeightTrend } from '../api/types'
 import { ErrorMessage, Hint, LoadingMessage } from '../components/QueryStatus'
+import { WeightForm } from '../components/WeightForm'
 import { formatFixed, formatSigned } from '../lib/format'
 
 // The chart library is large: load it only when this page needs it, so the login screen and
@@ -34,9 +35,7 @@ export function WeightPage() {
         <>
           <Stats data={weight.data} />
           {weight.data.measurements_total === 0 ? (
-            <Hint>
-              Nog geen gewicht gelogd. Invoeren kan voorlopig in de Streamlit-app.
-            </Hint>
+            <Hint>Nog geen gewicht gelogd. Voer hieronder je eerste meting in.</Hint>
           ) : (
             <>
               <div role="group" aria-label="Periode" className="grid grid-cols-4 gap-2">
@@ -67,6 +66,8 @@ export function WeightPage() {
           )}
         </>
       )}
+
+      <WeightForm />
     </section>
   )
 }

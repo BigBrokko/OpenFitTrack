@@ -1,10 +1,14 @@
+import { useState } from 'react'
 import { UnauthorizedError, useGoals } from '../api/data'
 import type { GoalInfo } from '../api/types'
+import { GoalForm } from '../components/GoalForm'
+import { secondaryButton } from '../components/styles'
 import { ErrorMessage, Hint, LoadingMessage } from '../components/QueryStatus'
 import { formatAmount, formatFullDate, formatNumber } from '../lib/format'
 
 export function GoalsPage() {
   const goals = useGoals()
+  const [editing, setEditing] = useState(false)
 
   return (
     <section className="space-y-5">
@@ -17,9 +21,17 @@ export function GoalsPage() {
       {goals.data && (
         <>
           {goals.data.current === null ? (
-            <Hint>Je hebt nog geen doel ingesteld. Instellen kan voorlopig in de Streamlit-app.</Hint>
+            <Hint>Je hebt nog geen doel ingesteld.</Hint>
           ) : (
             <CurrentGoal goal={goals.data.current} />
+          )}
+
+          {editing ? (
+            <GoalForm current={goals.data.current} onDone={() => setEditing(false)} />
+          ) : (
+            <button type="button" onClick={() => setEditing(true)} className={secondaryButton}>
+              {goals.data.current === null ? 'Doel instellen' : 'Doel wijzigen'}
+            </button>
           )}
 
           {goals.data.history.length > 0 && (

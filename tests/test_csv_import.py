@@ -3,10 +3,12 @@ from sqlmodel import select
 
 from core.csv_import import (
     ColumnMapping,
+    default_source,
     foods_from_table,
     guess_mapping,
     parse_number,
     read_csv_table,
+    resolve_mapping,
 )
 from core.foods import upsert_foods
 from core.models import Food
@@ -299,3 +301,42 @@ def test_upsert_rejects_foods_of_another_source(session):
 
     with pytest.raises(ValueError):
         upsert_foods(session, [food], "b")
+
+
+# --- Choosing the columns -----------------------------------------------------
+
+
+def test_default_source_comes_from_the_file_name():
+    assert default_source("Mijn Tabel (v2).csv") == "mijn-tabel-v2"
+    assert default_source("/data/NEVO2025.csv") == "nevo2025"
+    assert default_source("...csv") == "csv"
+
+
+def test_resolve_mapping_uses_the_guess_when_nothing_is_chosen():
+    mapping = resolve_mapping(["Name", "Energy (kcal)", "Protein", "Carbohydrate", "Fat"], {})
+
+    assert (mapping.name, mapping.kcal, mapping.protein_g) == ("Name", "Energy (kcal)", "Protein")
+
+
+def test_chosen_columns_win_over_the_guess():
+    columns = ["Name", "kcal", "Protein", "Carbohydrate", "Fat", "Alt"]
+
+    mapping = resolve_mapping(columns, {"protein_g": "Alt"})
+
+    assert mapping.protein_g == "Alt"
+    assert mapping.carbs_g == "Carbohydrate"
+
+
+def test_resolve_mapping_rejects_a_column_that_is_not_in_the_file():
+    with pytest.raises(ValueError, match="not in the file: Nope"):
+        resolve_mapping(["a", "b"], {"name": "Nope"})
+
+
+def test_resolve_mapping_names_the_fields_it_could_not_find():
+    with pytest.raises(ValueError, match="protein_g, carbs_g, fat_g"):
+        resolve_mapping(["Name", "kcal"], {})
+
+
+def test_resolve_mapping_needs_kcal_or_kj():
+    with pytest.raises(ValueError, match="kcal or kJ"):
+        resolve_mapping(["Name", "Protein", "Carbohydrate", "Fat"], {})
