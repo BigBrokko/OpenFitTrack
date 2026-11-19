@@ -24,8 +24,18 @@ uv run pytest
 uv run ruff check
 ```
 
-To use the app, set a password (see "API" below) and run the API and the web app, or run it
-all in one container (see "Run with Docker").
+## Quick start
+
+One command starts the API and the web app for development (it asks for a password the first
+time, installs the web packages if needed, and stops both servers on Ctrl+C):
+
+```bash
+uv run python scripts/dev.py          # your own database
+uv run python scripts/dev.py --demo   # a separate demo.db with dummy foods, meals and weights
+```
+
+Then open `http://localhost:5173`. For the production-like setup (one container, see "Run
+with Docker") use `docker compose up -d --build`.
 
 ## Food data
 
