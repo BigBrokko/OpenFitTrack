@@ -2,21 +2,10 @@ from datetime import date, datetime
 
 import pytest
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.pool import StaticPool
-from sqlmodel import Session, create_engine, select
+from sqlmodel import select
 
-from core.db import create_db, get_current_goal
+from core.db import get_current_goal
 from core.models import Food, FoodEntry, Goal, WeightEntry
-
-
-@pytest.fixture
-def session():
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    create_db(engine)
-    with Session(engine) as session:
-        yield session
 
 
 def make_food(name: str = "Kwark") -> Food:
@@ -42,7 +31,6 @@ def test_food_entry_references_food(session):
         food_id=food.id,
         logged_at=datetime(2026, 1, 5, 8, 30),
         amount_g=200.0,
-        raw_text="200g kwark",
     )
     session.add(entry)
     session.commit()
@@ -50,7 +38,6 @@ def test_food_entry_references_food(session):
     saved = session.exec(select(FoodEntry)).one()
     assert saved.food_id == food.id
     assert saved.amount_g == 200.0
-    assert saved.raw_text == "200g kwark"
 
 
 def test_weight_date_is_unique(session):

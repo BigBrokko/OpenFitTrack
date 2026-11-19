@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      # Only reachable from this computer. Reaching it from your phone comes with HTTPS.
+      - "127.0.0.1:8000:8000"
+    # OFT_PASSWORD_HASH, OFT_SESSION_SECRET and OFT_COOKIE_SECURE come from your .env
+    # (see the README); they are never baked into the image.
+    env_file: .env
+    environment:
+      # The database lives on the volume inside the container (this wins over .env).
+      DATABASE_URL: sqlite:////data/openfittrack.db
+    volumes:
+      - oft-data:/data
+      - ./data:/import:ro  # optional: CSV files for scripts/import_csv.py and import_nevo.py
+    restart: unless-stopped
+
+volumes:
+  oft-data:
