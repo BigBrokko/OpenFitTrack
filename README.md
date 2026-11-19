@@ -133,6 +133,47 @@ uv run uvicorn api.server:app --reload
 - **Changing the password** means running the script again and replacing both lines. A new
   `OFT_SESSION_SECRET` logs every existing session out.
 
+## Web app (work in progress)
+
+`web/` holds a mobile-first React + TypeScript app (Vite, Tailwind, TanStack Query) that
+talks to the API and can be installed as a PWA. For now it has a login screen and an
+empty shell with three tabs (Dag, Gewicht, Doelen); the pages follow. It needs Node 22.12 or
+newer.
+
+```bash
+cd web
+npm install
+```
+
+Run the API (see above) in one terminal and the web app in another:
+
+```bash
+npm run dev
+```
+
+Open `http://localhost:5173`. Vite forwards `/api` to the API on port 8000, so the login
+cookie works without CORS settings.
+
+| Command | What it does |
+|---|---|
+| `npm run lint` | ESLint |
+| `npm test` | Vitest tests |
+| `npm run build` | type check and production build into `web/dist` |
+| `npm run preview` | serve the production build on `http://localhost:4173` |
+| `npm run gen:api` | regenerate the TypeScript API types after an API change |
+| `npm run gen:icons` | regenerate the PWA icons from `public/icon.svg` |
+
+- **API types:** `web/openapi.json` is a snapshot of the API description and
+  `src/api/schema.d.ts` is generated from it. A Python test fails when the snapshot is
+  out of date: run `npm run gen:api` and commit the result.
+- **PWA:** the service worker only stores the app shell (code, styles, icons). It never
+  caches `/api`, so without a connection you see "no connection" instead of old health data.
+- **Installing on a phone needs HTTPS.** Browsers only allow installing a web app and
+  registering a service worker on HTTPS (or `localhost`). Plain `http://192.168...` over
+  Wi-Fi therefore cannot install the app, and logging in there also fails because the
+  cookie is `Secure` (unless `OFT_COOKIE_SECURE=false`, for a short test only). A trusted
+  HTTPS address, for example through Tailscale, is the last step of the project plan.
+
 ## Run with Docker
 
 The app runs in a container; the database lives in a Docker volume, so it survives restarts.
@@ -158,6 +199,7 @@ Stop with `docker compose down` (your data stays); `docker compose down -v` also
 
 - `core/` – all logic (matching, calculations, statistics, reports, CSV import, database); no framework imports
 - `api/` – FastAPI API, only calls `core`
+- `web/` – React frontend, only talks to the API
 - `app/` – Streamlit UI (temporary, until the React frontend replaces it), only calls `core`
 - `mcp_server/` – read-only MCP server, only calls `core`
 - `scripts/` – helper scripts (NEVO import, demo data, MCP smoke test)

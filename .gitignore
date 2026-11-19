@@ -5,6 +5,11 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Web app (build output and installed packages)
+web/node_modules/
+web/dist/
+web/dev-dist/
+
 # Secrets and local data
 .env
 *.db

@@ -16,6 +16,8 @@ __pycache__/
 CLAUDE.md
 tests/
 evals/
+web/node_modules/
+web/dist/
 README.md
 Dockerfile
 docker-compose.yml
